@@ -100,6 +100,18 @@ A)
 OpenGL's texture coordinates in NDC space are always in the range [0.0, 1.0] for both the u- and v-axes. Before the rendered vertical cross cubemap can be saved as an HDR image, scaling should be done.
 The display of this demo looks like a vertical cross because the dimensions of the view had been set using XCode's Interface Builder to 540 pixels : 720 pixels = 3 : 4.
 
+The  Objective-C class, CIImage has an init method:
+
+```objective-c
+
+    initWithTexture:size:flipped:colorSpace:
+
+```
+
+which can be use for this purpose. It requires a texture ID and the texture's resolution.
+
+<br />
+
 B)
 
 The code below was downloaded using the link: https://www.pauldebevec.com/RNL/Source/angmap.cal
