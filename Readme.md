@@ -151,13 +151,11 @@ https://en.wikipedia.org/wiki/Cube_mapping
 Developed with XCode 9.4.1
 
 Runtime requirements:
->iOS OpenGL ES 3.0
-
-or
-
-<br />
 
 >macOS OpenGL 3.2
 
+or
+
+>iOS OpenGL ES 3.0
 
 
