@@ -73,12 +73,17 @@ The horizontal axis of the coordinate system of this grid has the range [0.0, 3.
 <br />
 <br />
 
-Expected output:
+Expected output using UffiziProbe.hdr:
 
-![](UffiziPlaza.png)
+<p align="center">
+  <img src="./UffiziPlaza.png">
+</p>
 
+Expected output using StPetersProbe.hdr:
 
-![](StPetersBasilica.png)
+<p align="center">
+  <img src="./StPetersBasilica.png">
+</p>
 
 <br />
 <br />
