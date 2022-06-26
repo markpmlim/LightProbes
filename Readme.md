@@ -136,7 +136,7 @@ DDz = Pz * norm;
 norm = 1/sqrt(Py * Py + Px * Px + Pz * Pz); 
 
 
-## KIV: 
+### KIV: 
 
 Further improvements:
 <br />
@@ -148,7 +148,7 @@ Code to convert a light probe image to an equirectangular image directly maybe s
 <br />
 <br />
 
-Web Links:
+### Web Links:
 
 https://www.pauldebevec.com/Probes/
 
@@ -162,9 +162,14 @@ https://en.wikipedia.org/wiki/Cube_mapping
 
 <br />
 <br />
-Developed with XCode 9.4.1
+
+### Developed with XCode 9.4.1
+
 <br />
-Runtime requirements:
+
+### Runtime requirements:
+
+<br />
 
 >macOS OpenGL 3.2
 
