@@ -79,11 +79,16 @@ Expected output using UffiziProbe.hdr:
   <img src="./UffiziPlaza.png">
 </p>
 
+**<p align="center" >Uffizi Plaza</p>**
+
 Expected output using StPetersProbe.hdr:
 
 <p align="center">
   <img src="./StPetersBasilica.png">
 </p>
+
+
+**<p align="center" >St Peter's Basilica</p>**
 
 <br />
 <br />
