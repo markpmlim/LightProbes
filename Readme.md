@@ -54,7 +54,7 @@ This demo chooses the first method which is to output an intermediate cubemap te
 
 Paul Debevec had spent a lot of time and effort developing the concept of light probe images to be used in Image-Based Lighting (IBL). These images are actually of a record of the 3D environment of a real-world scene. He has posted a number of High Dynamic Range (HDR) Light Probe images as well as vertical crossmaps of those images at his site. (See links below.)
 
-Mapping the six 2D textures to a vertical cross map is relatively straighforward. We choose to map OpenGL's texture coordinate system with the range [0.0, 1.0] to a rectangular grid of dimensions 3 x 4 units squared. The source code of the fragment shader *VertCrossFragmentShader.glsl* has been heavily commented to help the reader gain an understanding of the mapping details.
+Mapping the six 2D textures to a vertical cross map is relatively straighforward. We choose to map OpenGL's texture coordinate system with the range [0.0, 1.0] to a rectangular grid of dimensions 3 x 4 units squared. The source code of the fragment shader *VertCrossFragmentShader.glsl* has been heavily commented to help the reader better understand the mapping details.
 
 The horizontal axis of the coordinate system of this grid has the range [0.0, 3.0] while the range of its vertical axis is [0.0, 4.0]. Given below is a table of values of the coordinates of the 6 faces of the vertical cross map expressed in the 2D coordinate system of the grid. (Recall OpenGL's texture coordinate system has its origin at the bottom left). The origin of this grid is at the bottom left.
 
