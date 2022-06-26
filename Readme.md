@@ -108,7 +108,7 @@ The  Objective-C class, CIImage has an init method:
 
 ```
 
-which can be use for this purpose. It requires a texture ID and the texture's resolution.
+which can be used for this purpose. It requires a texture ID and the texture's resolution. *(Hint: use a framebuffer object)*
 
 <br />
 
