@@ -110,21 +110,28 @@ angmap.cal
 Convert from directions in the world to coordinates on the angular sphere image
 
 -z is forward (outer edge of sphere)
+<br />
 +z is backward (center of sphere)
-+y is up (toward top of sphere) 
+<br />
++y is up (toward top of sphere)
+<br />
 }
 
+<br />
 sb_u = 0.5 + DDx * r;
 <br />
 sb_v = 0.5 + DDy * r;
 <br />
+<br />
 r = 0.159154943 * acos(DDz)/sqrt(DDx * DDx + DDy * DDy);
+<br />
 <br />
 DDy = Py * norm;
 <br />
 DDx = Px * norm;
 <br />
 DDz = Pz * norm;
+<br />
 <br />
 norm = 1/sqrt(Py * Py + Px * Px + Pz * Pz); 
 
@@ -153,9 +160,10 @@ https://www.gamedev.net/forums/topic/324884-hdr-angular-maps/
 
 https://en.wikipedia.org/wiki/Cube_mapping
 
-
+<br />
+<br />
 Developed with XCode 9.4.1
-
+<br />
 Runtime requirements:
 
 >macOS OpenGL 3.2
