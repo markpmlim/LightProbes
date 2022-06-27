@@ -190,3 +190,5 @@ or
 >iOS OpenGL ES 3.0
 
 
+In order to run under macOS 10.12.xx or eariler, one might have to create different UI widgets. Storyboards were only supported in macOS 10.10.xx and in iOS 5.1 or later. Even then, older versions of XCode might have problems editing storyboards created by later versions of XCode.
+
