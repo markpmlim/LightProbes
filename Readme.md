@@ -132,6 +132,10 @@ Code to convert the intermediate cubemap texture to an equirectangular image can
 Code to convert a light probe image to an equirectangular image directly maybe as a separate project.
 
 <br />
+
+**Note**: This Readme.md file contains several html tags which cannot be displayed by XCode's Editor.
+
+<br />
 <br />
 <br />
 
