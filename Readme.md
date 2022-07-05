@@ -1,7 +1,8 @@
-## Converting Light probes to Vertical Crossmaps
+## Light probes
 
-This project will convert light probes images to vertical cross cubemaps. The source can also be modified to render a skybox.
+This project can convert light probes images to vertical cross cubemaps.
 
+<br />
 <br />
 <br />
 
@@ -54,9 +55,9 @@ This demo chooses the first method which is to output an intermediate cubemap te
 
 Paul Debevec had spent a lot of time and effort developing the concept of light probe images to be used in Image-Based Lighting (IBL). These images are actually of a record of the 3D environment of a real-world scene. He has posted a number of High Dynamic Range (HDR) Light Probe images as well as vertical crossmaps of those images at his site. (See links below.)
 
-Mapping the six 2D textures to a vertical cross map is relatively straighforward. We choose to map OpenGL's texture coordinate system with the range [0.0, 1.0] to a rectangular grid of dimensions 3 x 4 units squared. The source code of the fragment shader *VertCrossFragmentShader.glsl* has been heavily commented to help the reader better understand the mapping details.
+Mapping the six 2D textures to a vertical cross map is relatively straighforward. We choose to map OpenGL's texture coordinate system with the range [0.0, 1.0] to a rectangular grid of dimensions 3 x 4 units squared. The source code of the fragment shader *VertCrossFragmentShader.glsl* has been heavily commented to help the reader gain an understanding of the transformation.
 
-The horizontal axis of the coordinate system of this grid has the range [0.0, 3.0] while the range of its vertical axis is [0.0, 4.0]. Given below is a table of values of the coordinates of the 6 faces of the vertical cross map expressed in the 2D coordinate system of the grid. (Recall OpenGL's texture coordinate system has its origin at the bottom left). The origin of this grid is at the bottom left.
+The horizontal axis of the coordinate system of this grid has the range [0.0, 3.0] while the range of its vertical axis is [0.0, 4.0]. Given below is a table of values of the coordinates of the 6 faces of the vertical cross map expressed in the 2D coordinate system of the grid. (Recall OpenGL's texture coordinate system has its origin at the bottom left).
 
 
 | Face  |   Bottom Left   |   Bottom Right  | Top Right | Top Left  |
@@ -93,28 +94,15 @@ Expected output using StPetersProbe.hdr:
 <br />
 <br />
 
-## *Notes*
+*Notes*
 
 A)
 
 OpenGL's texture coordinates in NDC space are always in the range [0.0, 1.0] for both the u- and v-axes. Before the rendered vertical cross cubemap can be saved as an HDR image, scaling should be done.
 The display of this demo looks like a vertical cross because the dimensions of the view had been set using XCode's Interface Builder to 540 pixels : 720 pixels = 3 : 4.
 
-The  Objective-C class, CIImage has an init method:
-
-```objective-c
-
-    initWithTexture:size:flipped:colorSpace:
-
-```
-
-which can be used for this purpose. It requires a texture ID and the texture's resolution. *(Hint: use a framebuffer object)*
-
-<br />
-
-B)
-
-The code below was downloaded using the link: https://www.pauldebevec.com/RNL/Source/angmap.cal
+B
+The code below is downloaded using the link: https://www.pauldebevec.com/RNL/Source/angmap.cal
 
 {
 angmap.cal
@@ -122,45 +110,32 @@ angmap.cal
 Convert from directions in the world to coordinates on the angular sphere image
 
 -z is forward (outer edge of sphere)
-<br />
 +z is backward (center of sphere)
-<br />
-+y is up (toward top of sphere)
-<br />
++y is up (toward top of sphere) 
 }
 
-<br />
 sb_u = 0.5 + DDx * r;
-<br />
 sb_v = 0.5 + DDy * r;
-<br />
-<br />
-r = 0.159154943 * acos(DDz)/sqrt(DDx * DDx + DDy * DDy);
-<br />
-<br />
+
+r = 0.159154943*acos(DDz)/sqrt(DDx * DDx + DDy * DDy);
+
 DDy = Py * norm;
-<br />
 DDx = Px * norm;
-<br />
 DDz = Pz * norm;
-<br />
-<br />
 norm = 1/sqrt(Py * Py + Px * Px + Pz * Pz); 
 
 
-### KIV: 
+KIV: 
 
 Further improvements:
-<br />
 Code to convert the intermediate cubemap texture to an equirectangular image can added.
-<br />
-Code to convert a light probe image to an equirectangular image directly maybe spin off as a separate project.
+Code to convert a light probe image to an equirectangular image directly maybe as a separate project.
 
 <br />
 <br />
 <br />
 
-### Web Links:
+Web Links:
 
 https://www.pauldebevec.com/Probes/
 
@@ -172,16 +147,10 @@ https://www.gamedev.net/forums/topic/324884-hdr-angular-maps/
 
 https://en.wikipedia.org/wiki/Cube_mapping
 
-<br />
-<br />
 
-### Developed with XCode 9.4.1
+Developed with XCode 9.4.1
 
-<br />
-
-### Runtime requirements:
-
-<br />
+Runtime requirements:
 
 >macOS OpenGL 3.2
 
@@ -189,6 +158,4 @@ or
 
 >iOS OpenGL ES 3.0
 
-
-In order to run under macOS 10.12.xx or eariler, one might have to create different UI widgets. Storyboards were only supported in macOS 10.10.xx and in iOS 5.1 or later. Even then, older versions of XCode might have problems editing storyboards created by later versions of XCode.
 

@@ -51,7 +51,6 @@
 		3ABD52F22283BC300050D28E /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
 		3ABD530B2283CAB50050D28E /* OpenGLViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = OpenGLViewController.h; sourceTree = "<group>"; };
 		3AFFA00B22A1F0C900D8184A /* OpenGLViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = OpenGLViewController.m; sourceTree = "<group>"; };
-		EE1BF0C8285FCFE8004A82E5 /* Readme.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Readme.md; sourceTree = "<group>"; wrapsLines = 1; };
 		EE245AD1285E708000E2DD14 /* StPetersProbe.hdr */ = {isa = PBXFileReference; lastKnownFileType = file; path = StPetersProbe.hdr; sourceTree = "<group>"; };
 		EE245AD7285E822A00E2DD14 /* stb_image_write.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = stb_image_write.h; sourceTree = "<group>"; };
 		EE2C576328601E0B00DF26DC /* UffiziProbe.hdr */ = {isa = PBXFileReference; lastKnownFileType = file; path = UffiziProbe.hdr; sourceTree = "<group>"; };
@@ -83,7 +82,6 @@
 		3A40C59F2277F0F500DBB29F = {
 			isa = PBXGroup;
 			children = (
-				EE1BF0C8285FCFE8004A82E5 /* Readme.md */,
 				3ABD53012283C3710050D28E /* Common */,
 				EE6B20BE284B588000027AD7 /* Images */,
 				3ABD53072283C4110050D28E /* OpenGL */,

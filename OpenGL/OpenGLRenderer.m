@@ -23,33 +23,31 @@
 @implementation OpenGLRenderer {
     GLuint _defaultFBOName;
     CGSize _viewSize;
-    // Size of each of the 6 faces of the 2D textures of the cubemap texture.
-    GLsizei _faceSize;
-
+    
     // GLSL programs.
     GLuint _vertCrossProgram;
     GLuint _angularMap2CubemapProgram;
-
+    
     GLint _angularMapLoc;
     GLint _cubemapTextureLoc;
-
-    // These are unused
+    
     GLint _resolutionLoc;
     GLint _mouseLoc;
     GLint _timeLoc;
     GLint _projectionMatrixLoc;
+    
     CGSize _tex0Resolution;
-
-
+    GLsizei _faceSize;
+    
     GLuint _lightProbeTextureID;
     GLuint _cubemapTextureID;
-
+    
     GLuint _cubeVAO;
+    GLuint _cubeVBO;
     GLuint _triangleVAO;
-
+    
     GLfloat _currentTime;
-
-    // unused
+    
     matrix_float4x4 _projectionMatrix;
 }
 
@@ -110,6 +108,10 @@
     glDeleteProgram(_angularMap2CubemapProgram);
     glDeleteProgram(_vertCrossProgram);
     glDeleteVertexArrays(1, &_cubeVAO);
+    glDeleteBuffers(1, &_cubeVBO);
+    glDeleteVertexArrays(1, &_triangleVAO);
+    glDeleteTextures(1, &_cubemapTextureID);
+    glDeleteTextures(1, &_lightProbeTextureID);
 }
 
 
@@ -132,21 +134,51 @@
                           resolution:(CGSize *)size
 {
     GLuint textureID = 0;
-
+    
     NSBundle *mainBundle = [NSBundle mainBundle];
-        NSArray<NSString *> *subStrings = [name componentsSeparatedByString:@"."];
-        NSString *path = [mainBundle pathForResource:subStrings[0]
-                                              ofType:subStrings[1]];
-
+    NSArray<NSString *> *subStrings = [name componentsSeparatedByString:@"."];
+    NSString *path = [mainBundle pathForResource:subStrings[0]
+                                          ofType:subStrings[1]];
+    
     GLint width;
     GLint height;
     GLint nrComponents;
-
+    
     stbi_set_flip_vertically_on_load(true);
     GLfloat *data = stbi_loadf([path UTF8String], &width, &height, &nrComponents, 0);
     if (data) {
+        size_t dataSize = width * height * nrComponents * sizeof(GLfloat);
+        
+        // Create and allocate space for a new buffer object
+        GLuint pbo;
+        glGenBuffers(1, &pbo);
+        // Bind the newly-created buffer object to initialise it.
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
+        // NULL means allocate GPU memory to the PBO.
+        // GL_STREAM_DRAW is a hint indicating the PBO will stream a texture upload
+        glBufferData(GL_PIXEL_UNPACK_BUFFER,
+                     dataSize,
+                     NULL,
+                     GL_STREAM_DRAW);
+        
+        // The following call will return a pointer to the buffer object.
+        // We are going to write data to the PBO. The call will only return when
+        //  the GPU finishes its work with the buffer object.
+        void* ptr = glMapBuffer(GL_PIXEL_UNPACK_BUFFER,
+                                GL_WRITE_ONLY);
+        
+        // Write data into the mapped buffer, possibly on another thread.
+        // This should upload image's raw data to GPU
+        memcpy(ptr, data, dataSize);
+        
+        // After reading is complete, back on the current thread
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
+        // Release pointer to mapping buffer
+        glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+        
         glGenTextures(1, &textureID);
         glBindTexture(GL_TEXTURE_2D, textureID);
+        // Read the texel data from the buffer object
         glTexImage2D(GL_TEXTURE_2D,
                      0,
                      GL_RGB16F,
@@ -154,7 +186,12 @@
                      0,
                      GL_RGB,
                      GL_FLOAT,
-                     data);
+                     NULL);     // byte offset into the buffer object's data store
+        
+        // Unbind and delete the buffer object
+        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+        glDeleteBuffers(1, &pbo);
+        
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -165,7 +202,7 @@
         printf("Error reading hdr file\n");
         exit(1);
     }
-
+    
     return textureID;
 }
 
@@ -221,7 +258,6 @@
             -1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f  // H bottom-left
         };
         
-        GLuint _cubeVBO;
         glGenVertexArrays(1, &_cubeVAO);
         glGenBuffers(1, &_cubeVBO);
         // fill buffer
