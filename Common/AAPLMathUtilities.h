@@ -1,7 +1,4 @@
 /*
- 
- Apple's MathUtilities: modified to support OpenGL
- 
 See LICENSE folder for this sample’s licensing information.
 
 Abstract:

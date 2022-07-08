@@ -1,7 +1,4 @@
-// https://stackoverflow.com/questions/56986420/convert-a-fisheye-image-to-an-equirectangular-image-with-opencv4
-// Fisheye to spherical conversion
-// Assumes the fisheye image is square, centered, and the circle fills the image.
-// Output image should have 1:1 aspect
+// To render a vertical cross from a cubemap texture consisting of six 2D textures
 
 #ifdef GL_ES
 precision mediump float;
@@ -23,15 +20,12 @@ uniform vec2 u_resolution;  // Input Image size (width, height) (unused)
 uniform vec2 u_mouse;       // mouse position in screen pixels (unused)
 uniform float u_time;       // Time in seconds since load (unused)
 
-
 const float PI = 3.14159265359;
 
 
 /*
- We map OpenGL's 2D Texture Coordinate System with a range of [0.0, 1.0] for
-  both the u-axis and v-axis to a virtual 2D coordinate system having a range
-  of [0.0, 3.0] and [0.0, 4.0] for the horizontal and vertical axes respectively.
-  This simplifies the arithemetic.
+ The fragments are sent in the form of a rectangular grid. We don't
+ need a double loop to process the colors of all fragments.
  */
 void main(void) {
     vec4 fragColor = vec4(0.0, 0.0, 0.2, 1.0);
@@ -39,10 +33,12 @@ void main(void) {
     // Vertical cross
     // Range of inUV.x: [0.0, 1.0] ---> [0.0, 3.0]
     // Range of inUV.y: [0.0, 1.0] ---> [0.0, 4.0]
-    inUV *= vec2(3.0, 4.0);
+    inUV *= vec2(3.0f, 4.0f);
     
-    vec3 samplePos = vec3(0.0);
+    // The samplePos is a 3D vector so the texture must be a cubemap.
+    vec3 samplePos = vec3(0.0f);
     
+    // Crude statement to visualize different cube map faces based on UV coordinates
     int x = int(floor(inUV.x));     // 0, 1, 2
     int y = int(floor(inUV.y));     // 0, 1, 2, 3
     
@@ -60,17 +56,17 @@ void main(void) {
         switch (y) {
             case 0: // NEGATIVE_Z
                 // Need to flip horizontally and vertically.
-                //samplePos = vec3(-uv.x, uv.y, -1.0);
-                samplePos = vec3(+uv.x, -uv.y, -1.0);
+                //samplePos = vec3(-uv.x, uv.y, -1.0f);
+                samplePos = vec3(+uv.x, -uv.y, -1.0f);
                 break;
             case 1: // NEGATIVE_Y
-                samplePos = vec3(uv.x, -1.0,  uv.y);
+                samplePos = vec3(uv.x, -1.0f,  uv.y);
                 break;
             case 2: // POSITIVE_Z
-                samplePos = vec3( uv.x, uv.y, 1.0);
+                samplePos = vec3( uv.x, uv.y, 1.0f);
                 break;
             case 3: // POSITIVE_Y
-                samplePos = vec3(uv.x,  1.0, -uv.y);
+                samplePos = vec3(uv.x,  1.0f, -uv.y);
                 break;
         }
     }
@@ -85,12 +81,12 @@ void main(void) {
             // inUV.x: [2.0, 3.0] ---> uv.x: [0.0, 1.0]
             // inUV.y: [2.0, 3.0] ---> uv.y: [0.0, 1.0]
             vec2 uv = vec2((inUV.x - float(x)),
-                           (inUV.y - 2.0));
+                           (inUV.y - 2.0f));
             // Convert [0.0, 1.0] ---> [-1.0, 1.0]
             uv = 2.0 * uv - 1.0;
             switch (x) {
                 case 0: // NEGATIVE_X
-                    samplePos = vec3(-1.0, uv.y, uv.x);
+                    samplePos = vec3(-1.0f, uv.y, uv.x);
                     break;
                 case 2: // POSITIVE_X
                     samplePos = vec3( 1.0, uv.y,  -uv.x);
@@ -98,7 +94,7 @@ void main(void) {
             }
         }
     }
-    if ((samplePos.x != 0.0) && (samplePos.y != 0.0)) {
+    if ((samplePos.x != 0.0f) && (samplePos.y != 0.0f)) {
     #if __VERSION__ >= 140
         FragColor = texture(cubemapTexture, samplePos);
     #else

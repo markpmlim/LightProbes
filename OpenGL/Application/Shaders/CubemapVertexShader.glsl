@@ -1,3 +1,4 @@
+// To generate a cubemap texture from the light probe image
 
 in vec3 aPos;
 

@@ -1,4 +1,13 @@
+/*
+ OpenGLHeaders.h
+ LightProbe
+ 
+ Created by Mark Lim Pak Mun on 01/07/2022.
+ Copyright © 2022 Mark Lim Pak Mun. All rights reserved.
+ 
+ Code imported from Apple's MigratingOpenGLCodeToMetal
 
+ */
 #ifndef AAPLGLHeaders_h
 #define AAPLGLHeaders_h
 

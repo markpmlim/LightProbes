@@ -1,7 +1,5 @@
 /*
- Apple's MathUtilities: modified to support OpenGL
-
- See LICENSE folder for this sample’s licensing information.
+See LICENSE folder for this sample’s licensing information.
 
 Abstract:
 Implementation of vector, matrix, and quaternion math utility functions useful for 3D graphics rendering.

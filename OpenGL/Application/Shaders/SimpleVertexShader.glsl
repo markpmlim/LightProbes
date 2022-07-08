@@ -1,3 +1,5 @@
+// To render a vertical cross from a cubemap texture consisting of six 2D textures
+
 #if __VERSION__ >= 140
 out vec2 texCoords;
 

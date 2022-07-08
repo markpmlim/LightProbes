@@ -1,13 +1,12 @@
 /*
- 
  OpenGLViewController.h
- LightProbe2VerticalCross
+ LightProbe
  
- Created by Mark Lim Pak Mun on 26/06/2022.
+ Created by Mark Lim Pak Mun on 01/07/2022.
  Copyright © 2022 Mark Lim Pak Mun. All rights reserved.
- The code is based on Apple's MigratingOpenGLCodeToMetal.
  
- */
+ Code based on Apple's MigratingOpenGLCodeToMetal
+*/
 
 #if defined(TARGET_IOS) || defined(TARGET_TVOS)
 @import UIKit;

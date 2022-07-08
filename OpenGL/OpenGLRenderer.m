@@ -1,11 +1,9 @@
 /*
-
-  OpenGLRenderer.m
-  LightProbe2VerticalCross
+ OpenGLRenderer.m
+ LightProbe
  
-  Created by Mark Lim Pak Mun on 26/06/2022.
-  Copyright © 2022 Mark Lim Pak Mun. All rights reserved.
-  The code is based on Apple's MigratingOpenGLCodeToMetal.
+ Created by Mark Lim Pak Mun on 01/07/2022.
+ Copyright © 2022 Mark Lim Pak Mun. All rights reserved.
 
  */
 
@@ -23,38 +21,38 @@
 @implementation OpenGLRenderer {
     GLuint _defaultFBOName;
     CGSize _viewSize;
-    
+
     // GLSL programs.
     GLuint _vertCrossProgram;
     GLuint _angularMap2CubemapProgram;
-    
+
     GLint _angularMapLoc;
     GLint _cubemapTextureLoc;
-    
+
     GLint _resolutionLoc;
     GLint _mouseLoc;
     GLint _timeLoc;
     GLint _projectionMatrixLoc;
-    
+
     CGSize _tex0Resolution;
     GLsizei _faceSize;
-    
+
     GLuint _lightProbeTextureID;
     GLuint _cubemapTextureID;
-    
+
     GLuint _cubeVAO;
     GLuint _cubeVBO;
     GLuint _triangleVAO;
-    
+
     GLfloat _currentTime;
-    
+
     matrix_float4x4 _projectionMatrix;
 }
 
 - (instancetype)initWithDefaultFBOName:(GLuint)defaultFBOName
 {
     self = [super init];
-    if (self) {
+    if(self) {
         NSLog(@"%s %s", glGetString(GL_RENDERER), glGetString(GL_VERSION));
 
         // Build all of your objects and setup initial state here.
@@ -73,7 +71,7 @@
         _angularMapLoc = glGetUniformLocation(_angularMap2CubemapProgram, "angularMapImage");
         printf("%d\n", _angularMapLoc);
 
-        _lightProbeTextureID = [self textureWithContentsOfFile:@"UffiziProbe.hdr"
+        _lightProbeTextureID = [self textureWithContentsOfFile:@"StPetersProbe.hdr"
                                                     resolution:&_tex0Resolution];
         //printf("%f %f\n", _tex0Resolution.width, _tex0Resolution.height);
 
@@ -96,6 +94,7 @@
         // Required.
         glGenVertexArrays(1, &_triangleVAO);
 
+        // Set the common size of the 6 faces of the cubemap texture here.
         _faceSize = 512;
         _cubemapTextureID = [self createCubemapTexture:_lightProbeTextureID
                                               faceSize:_faceSize];
@@ -114,8 +113,6 @@
     glDeleteTextures(1, &_lightProbeTextureID);
 }
 
-
-
 - (void)resize:(CGSize)size
 {
     // Handle the resize of the draw rectangle. In particular, update the perspective projection matrix
@@ -128,27 +125,26 @@
 }
 
 /*
- All light probes images are in HDR format.
+ All light probe images are in HDR format.
  */
 - (GLuint) textureWithContentsOfFile:(NSString *)name
-                          resolution:(CGSize *)size
-{
+                          resolution:(CGSize *)size {
     GLuint textureID = 0;
-    
+
     NSBundle *mainBundle = [NSBundle mainBundle];
     NSArray<NSString *> *subStrings = [name componentsSeparatedByString:@"."];
     NSString *path = [mainBundle pathForResource:subStrings[0]
                                           ofType:subStrings[1]];
-    
+
     GLint width;
     GLint height;
     GLint nrComponents;
-    
+
     stbi_set_flip_vertically_on_load(true);
     GLfloat *data = stbi_loadf([path UTF8String], &width, &height, &nrComponents, 0);
     if (data) {
         size_t dataSize = width * height * nrComponents * sizeof(GLfloat);
-        
+
         // Create and allocate space for a new buffer object
         GLuint pbo;
         glGenBuffers(1, &pbo);
@@ -160,22 +156,28 @@
                      dataSize,
                      NULL,
                      GL_STREAM_DRAW);
-        
+
         // The following call will return a pointer to the buffer object.
         // We are going to write data to the PBO. The call will only return when
         //  the GPU finishes its work with the buffer object.
+    #ifdef TARGET_MACOS
         void* ptr = glMapBuffer(GL_PIXEL_UNPACK_BUFFER,
                                 GL_WRITE_ONLY);
-        
+    #else
+        void* ptr = glMapBufferRange(GL_PIXEL_UNPACK_BUFFER,
+                                     0,
+                                     dataSize,
+                                     GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+    #endif
         // Write data into the mapped buffer, possibly on another thread.
         // This should upload image's raw data to GPU
         memcpy(ptr, data, dataSize);
-        
+
         // After reading is complete, back on the current thread
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
         // Release pointer to mapping buffer
         glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
-        
+
         glGenTextures(1, &textureID);
         glBindTexture(GL_TEXTURE_2D, textureID);
         // Read the texel data from the buffer object
@@ -187,11 +189,11 @@
                      GL_RGB,
                      GL_FLOAT,
                      NULL);     // byte offset into the buffer object's data store
-        
+
         // Unbind and delete the buffer object
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
         glDeleteBuffers(1, &pbo);
-        
+
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -202,7 +204,7 @@
         printf("Error reading hdr file\n");
         exit(1);
     }
-    
+
     return textureID;
 }
 
@@ -215,47 +217,47 @@
         float vertices[] = {
             // back face
             //  positions               normals       texcoords
-            -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // A bottom-left
-            1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // C top-right
-            1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 0.0f, // B bottom-right
-            1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // C top-right
-            -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // A bottom-left
-            -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 1.0f, // D top-left
+            -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f,   // A bottom-left
+            1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f,    // C top-right
+            1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 0.0f,    // B bottom-right
+            1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f,    // C top-right
+            -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f,   // A bottom-left
+            -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 1.0f,   // D top-left
             // front face
-            -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // E bottom-left
-            1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 0.0f, // F bottom-right
-            1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // G top-right
-            1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // G top-right
-            -1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 1.0f, // H top-left
-            -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // E bottom-left
+            -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f,   // E bottom-left
+            1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 0.0f,    // F bottom-right
+            1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f,    // G top-right
+            1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f,    // G top-right
+            -1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 1.0f,   // H top-left
+            -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f,   // E bottom-left
             // left face
-            -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // H top-right
-            -1.0f,  1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // D top-left
-            -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // A bottom-left
-            -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // A bottom-left
-            -1.0f, -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // E bottom-right
-            -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // H top-right
+            -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f,   // H top-right
+            -1.0f,  1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 1.0f,   // D top-left
+            -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f,   // A bottom-left
+            -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f,   // A bottom-left
+            -1.0f, -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f,   // E bottom-right
+            -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f,   // H top-right
             // right face
-            1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // G top-left
-            1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // B bottom-right
-            1.0f,  1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // C top-right
-            1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // B bottom-right
-            1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // G top-left
-            1.0f, -1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // F bottom-left
+            1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f,    // G top-left
+            1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f,    // B bottom-right
+            1.0f,  1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 1.0f,    // C top-right
+            1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f,    // B bottom-right
+            1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f,    // G top-left
+            1.0f, -1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f,    // F bottom-left
             // bottom face
-            -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // F top-right
-            1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 1.0f, // E Atop-left
-            1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // A bottom-left
-            1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // A bottom-left
-            -1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f, // B bottom-right
-            -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // F top-right
+            -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f,   // F top-right
+            1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 1.0f,    // E Atop-left
+            1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f,    // A bottom-left
+            1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f,    // A bottom-left
+            -1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f,   // B bottom-right
+            -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f,   // F top-right
             // top face
-            -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // D top-left
-            1.0f,  1.0f , 1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // G bottom-right
-            1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 1.0f, // C top-right
-            1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // G bottom-right
-            -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // D top-left
-            -1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f  // H bottom-left
+            -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f,   // D top-left
+            1.0f,  1.0f , 1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f,    // G bottom-right
+            1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 1.0f,    // C top-right
+            1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f,    // G bottom-right
+            -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f,   // D top-left
+            -1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f    // H bottom-left
         };
         
         glGenVertexArrays(1, &_cubeVAO);
@@ -296,7 +298,6 @@
                      nil);                  // allocate space for the pixels.
     }
 
-
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
@@ -309,7 +310,7 @@
     GLuint captureRBO;
     glGenFramebuffers(1, &captureFBO);
     glGenRenderbuffers(1, &captureRBO);
-    
+
     glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
     glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, faceSize, faceSize);
@@ -353,16 +354,45 @@
     glUseProgram(_angularMap2CubemapProgram);
     GLint projectionMatrixLoc = glGetUniformLocation(_angularMap2CubemapProgram, "projectionMatrix");
     GLint viewMatrixLoc = glGetUniformLocation(_angularMap2CubemapProgram, "viewMatrix");
-    //printf("%d %d\n", projectionMatrixLoc, viewMatrixLoc);
+    printf("%d %d\n", projectionMatrixLoc, viewMatrixLoc);
     glUniformMatrix4fv(projectionMatrixLoc, 1, GL_FALSE, (const GLfloat*)&captureProjectionMatrix);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, textureID);
     glViewport(0, 0, faceSize, faceSize);
 
+    void *pixelsBitmap[6];
+    for (unsigned int i = 0; i < 6; ++i) {
+        // # of channels=3, each channel consists of 1 GLfloat
+        pixelsBitmap[i] = malloc(faceSize*faceSize*3*sizeof(GLfloat));
+    }
+
+    // The images of the 6 faces of the cubemap are saved
+/*
+    // We can use a Pixel Buffer Object to capture the bitmap
+    // Setup a Pixel Buffer Object here.
+    GLuint pbo;
+    glGenBuffers(1, &pbo);
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, pbo);
+    GLsizei pboBufferSize = 512*512*3*4;
+    glBufferData(GL_PIXEL_PACK_BUFFER, pboBufferSize, NULL, GL_STREAM_READ);
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+
+    // The returned value for SRGB surfaces is GL_SRGB (0x8C40)
+    // For other surfaces: GL_LINEAR (0x2601) should be returned.
+    // glGetNamedFramebufferAttachmentParameteriv is not supported by macOS OpenGL
+    GLint encoding = 0;
+    glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER,
+                                          GL_FRONT_AND_BACK,
+                                          GL_FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING,
+                                          &encoding);
+    // Encoding is 0x0000!
+    printf("encoding: 0x%04x\n", encoding);
+ */
     glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
     for (unsigned int i = 0; i < 6; ++i) {
-        glUniformMatrix4fv(viewMatrixLoc, 1, GL_FALSE, (const GLfloat*)&captureViewMatrices[i]);
+        glUniformMatrix4fv(viewMatrixLoc, 1, GL_FALSE,
+                           (const GLfloat*)&captureViewMatrices[i]);
         glFramebufferTexture2D(GL_FRAMEBUFFER,
                                GL_COLOR_ATTACHMENT0,
                                GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
@@ -370,7 +400,42 @@
                                0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         [self renderCube];
+/*
+        // Only GL_COLOR_ATTACHMENTi or GL_NONE is valid because
+        //  we are reading from a offscreen framebuffer
+        glReadBuffer(GL_COLOR_ATTACHMENT0);
+ 
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, pbo);
+        //glBindFramebuffer(GL_READ_FRAMEBUFFER, captureFBO); // not necessary
+ 
+        // A better alternative: use glGetTexImage - ref OGL8 334
+        glReadPixels(0, 0,
+                     faceSize, faceSize,
+                     GL_RGB,
+                     GL_FLOAT,
+                     NULL);         // offset
+
+        void *pboPtr = glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
+        if (pboPtr) {
+            memcpy(pixelsBitmap[i], pboPtr, pboBufferSize);
+            glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+ 
+            char cFile[32];
+            sprintf(cFile, "image%02u.hdr", i);
+            stbi_write_hdr((char const *)cFile,
+                           faceSize, faceSize,
+                           3,
+                           (const float *)pixelsBitmap[i]);
+        }
+        glDeleteBuffers(pbo);
+ */
     }
+
+    for (unsigned int i = 0; i < 6; ++i) {
+        free(pixelsBitmap[i]);
+    }
+    glDeleteFramebuffers(1, &captureFBO);
+    glDeleteRenderbuffers(1, &captureRBO);
 
     glBindFramebuffer(GL_FRAMEBUFFER, _defaultFBOName);
     glUseProgram(0);
@@ -395,8 +460,13 @@
     glClearColor(0.5, 0.5, 0.5, 1.0);
     glViewport(0, 0,
                _viewSize.width, _viewSize.height);
-
+    vector_float3 eye = (vector_float3){-1,0,0};
+    vector_float3 target = (vector_float3){0,0,0};
+    vector_float3 up = (vector_float3){0,1,0};
+    matrix_float4x4 viewMatrix = matrix_look_at_right_hand_gl(eye, target, up);
     glUseProgram(_vertCrossProgram);
+
+    glUniformMatrix4fv(_projectionMatrixLoc, 1, GL_FALSE, (const GLfloat*)&_projectionMatrix);
     glUniform1f(_timeLoc, _currentTime);
     glUniform2f(_mouseLoc, _mouseCoords.x, _mouseCoords.y);
     glUniform2f(_resolutionLoc,
