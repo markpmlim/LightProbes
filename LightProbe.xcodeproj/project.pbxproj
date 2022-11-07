@@ -23,14 +23,16 @@
 		EE043E882869D6420063C6AA /* CubemapFragmentShader.glsl in Resources */ = {isa = PBXBuildFile; fileRef = EE043E842869D6420063C6AA /* CubemapFragmentShader.glsl */; };
 		EE043E892869D6420063C6AA /* CubemapVertexShader.glsl in Resources */ = {isa = PBXBuildFile; fileRef = EE043E852869D6420063C6AA /* CubemapVertexShader.glsl */; };
 		EE043E8A2869D6420063C6AA /* CubemapVertexShader.glsl in Resources */ = {isa = PBXBuildFile; fileRef = EE043E852869D6420063C6AA /* CubemapVertexShader.glsl */; };
-		EE043E8B2869D6420063C6AA /* VertCrossFragmentShader.glsl in Resources */ = {isa = PBXBuildFile; fileRef = EE043E862869D6420063C6AA /* VertCrossFragmentShader.glsl */; };
-		EE043E8C2869D6420063C6AA /* VertCrossFragmentShader.glsl in Resources */ = {isa = PBXBuildFile; fileRef = EE043E862869D6420063C6AA /* VertCrossFragmentShader.glsl */; };
 		EE245AD2285E708000E2DD14 /* StPetersProbe.hdr in Resources */ = {isa = PBXBuildFile; fileRef = EE245AD1285E708000E2DD14 /* StPetersProbe.hdr */; };
 		EE245AD3285E708000E2DD14 /* StPetersProbe.hdr in Resources */ = {isa = PBXBuildFile; fileRef = EE245AD1285E708000E2DD14 /* StPetersProbe.hdr */; };
 		EE2C576428601E0B00DF26DC /* UffiziProbe.hdr in Resources */ = {isa = PBXBuildFile; fileRef = EE2C576328601E0B00DF26DC /* UffiziProbe.hdr */; };
 		EE2C576528601E0B00DF26DC /* UffiziProbe.hdr in Resources */ = {isa = PBXBuildFile; fileRef = EE2C576328601E0B00DF26DC /* UffiziProbe.hdr */; };
-		EE692A672865C6F90033BD70 /* SimpleVertexShader.glsl in Resources */ = {isa = PBXBuildFile; fileRef = EE692A652865C6F90033BD70 /* SimpleVertexShader.glsl */; };
-		EE692A682865C6F90033BD70 /* SimpleVertexShader.glsl in Resources */ = {isa = PBXBuildFile; fileRef = EE692A652865C6F90033BD70 /* SimpleVertexShader.glsl */; };
+		EE93379E2918AC1A00590D03 /* SimpleFragmentShader.glsl in Resources */ = {isa = PBXBuildFile; fileRef = EE93379B2918AC1A00590D03 /* SimpleFragmentShader.glsl */; };
+		EE93379F2918AC1A00590D03 /* SimpleFragmentShader.glsl in Resources */ = {isa = PBXBuildFile; fileRef = EE93379B2918AC1A00590D03 /* SimpleFragmentShader.glsl */; };
+		EE9337A02918AC1A00590D03 /* SimpleVertexShader.glsl in Resources */ = {isa = PBXBuildFile; fileRef = EE93379C2918AC1A00590D03 /* SimpleVertexShader.glsl */; };
+		EE9337A12918AC1A00590D03 /* SimpleVertexShader.glsl in Resources */ = {isa = PBXBuildFile; fileRef = EE93379C2918AC1A00590D03 /* SimpleVertexShader.glsl */; };
+		EE9337A22918AC1A00590D03 /* VertCrossFragmentShader.glsl in Resources */ = {isa = PBXBuildFile; fileRef = EE93379D2918AC1A00590D03 /* VertCrossFragmentShader.glsl */; };
+		EE9337A32918AC1A00590D03 /* VertCrossFragmentShader.glsl in Resources */ = {isa = PBXBuildFile; fileRef = EE93379D2918AC1A00590D03 /* VertCrossFragmentShader.glsl */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -53,11 +55,12 @@
 		3AFFA00B22A1F0C900D8184A /* OpenGLViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = OpenGLViewController.m; sourceTree = "<group>"; };
 		EE043E842869D6420063C6AA /* CubemapFragmentShader.glsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CubemapFragmentShader.glsl; sourceTree = "<group>"; };
 		EE043E852869D6420063C6AA /* CubemapVertexShader.glsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CubemapVertexShader.glsl; sourceTree = "<group>"; };
-		EE043E862869D6420063C6AA /* VertCrossFragmentShader.glsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = VertCrossFragmentShader.glsl; sourceTree = "<group>"; };
 		EE245AD1285E708000E2DD14 /* StPetersProbe.hdr */ = {isa = PBXFileReference; lastKnownFileType = file; path = StPetersProbe.hdr; sourceTree = "<group>"; };
 		EE245AD7285E822A00E2DD14 /* stb_image_write.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = stb_image_write.h; sourceTree = "<group>"; };
 		EE2C576328601E0B00DF26DC /* UffiziProbe.hdr */ = {isa = PBXFileReference; lastKnownFileType = file; path = UffiziProbe.hdr; sourceTree = "<group>"; };
-		EE692A652865C6F90033BD70 /* SimpleVertexShader.glsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = SimpleVertexShader.glsl; sourceTree = "<group>"; };
+		EE93379B2918AC1A00590D03 /* SimpleFragmentShader.glsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = SimpleFragmentShader.glsl; sourceTree = "<group>"; };
+		EE93379C2918AC1A00590D03 /* SimpleVertexShader.glsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = SimpleVertexShader.glsl; sourceTree = "<group>"; };
+		EE93379D2918AC1A00590D03 /* VertCrossFragmentShader.glsl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = VertCrossFragmentShader.glsl; sourceTree = "<group>"; };
 		EECEE4D3284B8A670057D585 /* stb_image.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = stb_image.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -199,8 +202,9 @@
 			children = (
 				EE043E842869D6420063C6AA /* CubemapFragmentShader.glsl */,
 				EE043E852869D6420063C6AA /* CubemapVertexShader.glsl */,
-				EE043E862869D6420063C6AA /* VertCrossFragmentShader.glsl */,
-				EE692A652865C6F90033BD70 /* SimpleVertexShader.glsl */,
+				EE93379B2918AC1A00590D03 /* SimpleFragmentShader.glsl */,
+				EE93379C2918AC1A00590D03 /* SimpleVertexShader.glsl */,
+				EE93379D2918AC1A00590D03 /* VertCrossFragmentShader.glsl */,
 			);
 			path = Shaders;
 			sourceTree = "<group>";
@@ -294,11 +298,12 @@
 			files = (
 				3A54891122A8329700D4B25A /* Main.storyboard in Resources */,
 				EE043E872869D6420063C6AA /* CubemapFragmentShader.glsl in Resources */,
+				EE9337A22918AC1A00590D03 /* VertCrossFragmentShader.glsl in Resources */,
+				EE9337A02918AC1A00590D03 /* SimpleVertexShader.glsl in Resources */,
 				EE2C576428601E0B00DF26DC /* UffiziProbe.hdr in Resources */,
-				EE692A672865C6F90033BD70 /* SimpleVertexShader.glsl in Resources */,
 				EE043E892869D6420063C6AA /* CubemapVertexShader.glsl in Resources */,
+				EE93379E2918AC1A00590D03 /* SimpleFragmentShader.glsl in Resources */,
 				EE245AD2285E708000E2DD14 /* StPetersProbe.hdr in Resources */,
-				EE043E8B2869D6420063C6AA /* VertCrossFragmentShader.glsl in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -306,13 +311,14 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				EE692A682865C6F90033BD70 /* SimpleVertexShader.glsl in Resources */,
 				EE2C576528601E0B00DF26DC /* UffiziProbe.hdr in Resources */,
-				EE043E8C2869D6420063C6AA /* VertCrossFragmentShader.glsl in Resources */,
+				EE9337A32918AC1A00590D03 /* VertCrossFragmentShader.glsl in Resources */,
 				EE245AD3285E708000E2DD14 /* StPetersProbe.hdr in Resources */,
+				EE93379F2918AC1A00590D03 /* SimpleFragmentShader.glsl in Resources */,
 				3A4DDD6D2283D9150095BC87 /* LaunchScreen.storyboard in Resources */,
 				EE043E882869D6420063C6AA /* CubemapFragmentShader.glsl in Resources */,
 				EE043E8A2869D6420063C6AA /* CubemapVertexShader.glsl in Resources */,
+				EE9337A12918AC1A00590D03 /* SimpleVertexShader.glsl in Resources */,
 				3A54891422A8329700D4B25A /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
