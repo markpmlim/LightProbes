@@ -15,20 +15,17 @@ varying vec2 texCoords;
 
 #endif
 
-uniform samplerCube cubemapTexture;
-uniform vec2 u_resolution;  // Input Image size (width, height) (unused)
-uniform vec2 u_mouse;       // mouse position in screen pixels (unused)
-uniform float u_time;       // Time in seconds since load (unused)
+uniform samplerCube cubemap;
 
 const float PI = 3.14159265359;
 
 
 /*
  The fragments are sent in the form of a rectangular grid. We don't
- need a double loop to process the colors of all fragments.
+ need a double loop to process the colors of each fragment.
  */
 void main(void) {
-    vec4 fragColor = vec4(0.0, 0.0, 0.2, 1.0);
+
     vec2 inUV = texCoords;
     // Vertical cross
     // Range of inUV.x: [0.0, 1.0] ---> [0.0, 3.0]
@@ -96,9 +93,9 @@ void main(void) {
     }
     if ((samplePos.x != 0.0f) && (samplePos.y != 0.0f)) {
     #if __VERSION__ >= 140
-        FragColor = texture(cubemapTexture, samplePos);
+        FragColor = texture(cubemap, samplePos);
     #else
-        gl_FragColor = textureCube(cubemapTexture, samplePos);
+        gl_FragColor = textureCube(cubemap, samplePos);
     #endif
     }
 }
