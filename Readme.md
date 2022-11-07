@@ -6,7 +6,7 @@ This project can convert light probes images to vertical cross cubemaps.
 <br />
 <br />
 
-The concept of the conversion is simple. Basically, the Mathematics requires a 3D vector to be converted in a pair of uv coordinates which is then used to access the 2D Light Probe image.
+The concept of the conversion is simple. Basically, the Mathematics requires a 3D vector to be converted into a pair of uv coordinates which is then used to access the 2D Light Probe texture.
 
 According to the documentation (see below - angmap.cal), the calculations looks like this :
 
@@ -39,10 +39,10 @@ Finally, the texture coordinates are computed:
 
 ```glsl
     float sb_u = 0.5 + DDx * r;
-    float sb_v = 0.5 + DDx * r;
+    float sb_v = 0.5 + DDy * r;
 ```
 
-The values of sb_u and sb_v are used to access the texture instantiated from the Light Probe image.
+The values of sb_u and sb_v are used to access the 2D texture instantiated from the Light Probe image.
 
 
 It is obvious from the code above, a normalized 3D vector is required to calculate the quantities: *r*, *sb_u* and *sb_v*.
@@ -51,7 +51,7 @@ One method is to send an interpolated 3D vector from the vertex shader to the fr
 
 Another method is to output an equirectangular texture since we know how to project a 2D point on the (equirectangular) map onto a unit sphere.
 
-This demo chooses the first method which is to output an intermediate cubemap texture consisting of six 2D textures. A framebuffer object is instantiated to capture the cubemap texture. Once the cubemap texture had been captured, one can map it to a vertical/horizontal cross map, a vertical/horizontal strip or an equirectangular map. There is also an additional advantage: one can use macOS' *OpenGL Profiler* to check if the cubemap texture has been successfully created because the code creating its six 2D textures is proven  to work.
+This demo chooses the first method which is to output an intermediate cubemap texture consisting of six 2D textures. A framebuffer object is instantiated to capture the cubemap texture. Once the cubemap texture had been captured, one can map it to a vertical/horizontal cross map, a vertical/horizontal strip or an equirectangular map. There is also an additional advantage: one can use macOS' *OpenGL Profiler* to check if the cubemap texture has been successfully created because the code creating its six 2D textures has been proven to work.
 
 Paul Debevec had spent a lot of time and effort developing the concept of light probe images to be used in Image-Based Lighting (IBL). These images are actually of a record of the 3D environment of a real-world scene. He has posted a number of High Dynamic Range (HDR) Light Probe images as well as vertical crossmaps of those images at his site. (See links below.)
 
@@ -98,8 +98,22 @@ Expected output using StPetersProbe.hdr:
 
 A)
 
-OpenGL's texture coordinates in NDC space are always in the range [0.0, 1.0] for both the u- and v-axes. Before the rendered vertical cross cubemap can be saved as an HDR image, scaling should be done.
-The display of this demo looks like a vertical cross because the dimensions of the view had been set using XCode's Interface Builder to 540 pixels : 720 pixels = 3 : 4.
+OpenGL's texture coordinates in NDC space are always in the range [0.0, 1.0] for both the u- and v-axes. In order to render a vertical cross cubemap (whose dimensions are 3:4), scaling must be done. The interpolated uv-coordinates sent by the GPU's Rasterizer is multiplied by vec2(3.0, 4.0). On the CPU (client) side of this demo, the storage space for the vertical cross map texture is declared with the OpenGL call:
+
+```glsl
+    glTexImage2D(GL_TEXTURE_2D,
+                 0,
+                 GL_RGBA32F,                // internal format
+                 size.width, size.height,   // width, height
+                 0,
+                 GL_RGBA,                   // format
+                 GL_FLOAT,                  // type
+                 nil);                      // allocate space for the pixels.
+
+```
+
+The rendered texture can be saved as an HDR image by pressing "s'.
+
 
 B
 The code below is downloaded using the link: https://www.pauldebevec.com/RNL/Source/angmap.cal
@@ -124,12 +138,6 @@ DDx = Px * norm;
 DDz = Pz * norm;
 norm = 1/sqrt(Py * Py + Px * Px + Pz * Pz); 
 
-
-KIV: 
-
-Further improvements:
-Code to convert the intermediate cubemap texture to an equirectangular image can added.
-Code to convert a light probe image to an equirectangular image directly maybe as a separate project.
 
 <br />
 
