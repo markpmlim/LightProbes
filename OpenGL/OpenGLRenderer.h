@@ -16,13 +16,13 @@
 @interface OpenGLRenderer : NSObject {
 }
 
-- (instancetype)initWithDefaultFBOName:(GLuint)defaultFBOName;
+- (instancetype) initWithDefaultFBOName:(GLuint)defaultFBOName;
 
-- (void)draw;
+- (void) draw;
 
-- (void)resize:(CGSize)size;
+- (void) resize:(CGSize)size;
 
-@property CGPoint mouseCoords;
-// For saving to a HDR file
+// Give access to the view controller object so that an HDR image file can be saved
+@property GLuint vertCrossmapTextureID;
 
 @end

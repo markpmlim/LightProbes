@@ -14,43 +14,44 @@
 #import <ModelIO/ModelIO.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#import "stb_image_write.h"
 
+// OpenGL textures are limited to 16K in size.
+typedef NS_OPTIONS(NSUInteger, ImageSize) {
+    QtrK        = 256,
+    HalfK       = 512,
+    OneK        = 1024,
+    TwoK        = 2048,
+    ThreeK      = 3072,
+    FourK       = 4096,
+    EightK      = 8192,
+    SixteenK    = 16384
+};
 
 @implementation OpenGLRenderer {
     GLuint _defaultFBOName;
     CGSize _viewSize;
 
-    // GLSL programs.
-    GLuint _vertCrossProgram;
-    GLuint _angularMap2CubemapProgram;
-
-    GLint _angularMapLoc;
-    GLint _cubemapTextureLoc;
-
-    GLint _resolutionLoc;
-    GLint _mouseLoc;
-    GLint _timeLoc;
-    GLint _projectionMatrixLoc;
+    GLuint _glslProgram;
+    GLint _imageLoc;
+    GLint _projectionMatrixLoc;     // unused
 
     CGSize _tex0Resolution;
-    GLsizei _faceSize;
 
     GLuint _lightProbeTextureID;
     GLuint _cubemapTextureID;
+    GLuint _vertCrossmapTextureID;
 
     GLuint _cubeVAO;
     GLuint _cubeVBO;
-    GLuint _triangleVAO;
+    GLuint _quadVAO;
 
     GLfloat _currentTime;
 
     matrix_float4x4 _projectionMatrix;
 }
 
-- (instancetype)initWithDefaultFBOName:(GLuint)defaultFBOName
-{
+- (instancetype) initWithDefaultFBOName:(GLuint)defaultFBOName {
+
     self = [super init];
     if(self) {
         NSLog(@"%s %s", glGetString(GL_RENDERER), glGetString(GL_VERSION));
@@ -58,63 +59,52 @@
         // Build all of your objects and setup initial state here.
         _defaultFBOName = defaultFBOName;
         [self buildResources];
-        // Must bind or buildProgramWithVertexSourceURL:withFragmentSourceURLwill crash on validation.
-        glBindVertexArray(_cubeVAO);
-
-        NSBundle *mainBundle = [NSBundle mainBundle];
-        NSURL *vertexSourceURL = [mainBundle URLForResource:@"CubemapVertexShader"
-                                              withExtension:@"glsl"];
-        NSURL *fragmentSourceURL = [mainBundle URLForResource:@"CubemapFragmentShader"
-                                              withExtension:@"glsl"];
-        _angularMap2CubemapProgram = [OpenGLRenderer buildProgramWithVertexSourceURL:vertexSourceURL
-                                                             withFragmentSourceURL:fragmentSourceURL];
-        _angularMapLoc = glGetUniformLocation(_angularMap2CubemapProgram, "angularMapImage");
-        printf("%d\n", _angularMapLoc);
-
         _lightProbeTextureID = [self textureWithContentsOfFile:@"StPetersProbe.hdr"
                                                     resolution:&_tex0Resolution];
+        
+        //printf("light probe:%u\n", _lightProbeTextureID);
         //printf("%f %f\n", _tex0Resolution.width, _tex0Resolution.height);
 
-        vertexSourceURL = [mainBundle URLForResource:@"SimpleVertexShader"
-                                              withExtension:@"glsl"];
-        fragmentSourceURL = [mainBundle URLForResource:@"VertCrossFragmentShader"
-                                                withExtension:@"glsl"];
-        _vertCrossProgram = [OpenGLRenderer buildProgramWithVertexSourceURL:vertexSourceURL
-                                                   withFragmentSourceURL:fragmentSourceURL];
-
-        printf("%u\n", _vertCrossProgram);
-        _resolutionLoc = glGetUniformLocation(_vertCrossProgram, "u_resolution");
-        _mouseLoc = glGetUniformLocation(_vertCrossProgram, "u_mouse");
-        _timeLoc = glGetUniformLocation(_vertCrossProgram, "u_time");
-        _projectionMatrixLoc = glGetUniformLocation(_vertCrossProgram, "projectionMatrix");
-        _cubemapTextureLoc = glGetUniformLocation(_vertCrossProgram, "cubemapTexture");
-        printf("%d %d %d\n", _resolutionLoc, _mouseLoc, _timeLoc);
-        printf("%d %d\n", _projectionMatrixLoc, _cubemapTextureLoc);
-        glBindVertexArray(0);
-        // Required.
-        glGenVertexArrays(1, &_triangleVAO);
-
         // Set the common size of the 6 faces of the cubemap texture here.
-        _faceSize = 512;
+        GLsizei faceSize = OneK;
         _cubemapTextureID = [self createCubemapTexture:_lightProbeTextureID
-                                              faceSize:_faceSize];
-    }
+                                              faceSize:faceSize];
+        //printf("cubemap texture id:%u\n", _cubemapTextureID);
+
+        glGenVertexArrays(1, &_quadVAO);
+        CGSize crossmapSize = CGSizeMake(QtrK*3, QtrK*4);
+        _vertCrossmapTextureID = [self renderVertCrossmapWithTexture:_cubemapTextureID
+                                                                size:crossmapSize];
+ 
+        glBindVertexArray(_quadVAO);
+        NSBundle *mainBundle = [NSBundle mainBundle];
+        NSURL *vertexSourceURL = [mainBundle URLForResource:@"SimpleVertexShader"
+                                              withExtension:@"glsl"];
+        NSURL *fragmentSourceURL = [mainBundle URLForResource:@"SimpleFragmentShader"
+                                                withExtension:@"glsl"];
+        _glslProgram = [OpenGLRenderer buildProgramWithVertexSourceURL:vertexSourceURL
+                                                 withFragmentSourceURL:fragmentSourceURL];
+        
+        //printf("%u\n", _glslProgram);
+        _projectionMatrixLoc = glGetUniformLocation(_glslProgram, "projectionMatrix");
+        _imageLoc = glGetUniformLocation(_glslProgram, "image");
+        glBindVertexArray(0);
+   }
 
     return self;
 }
 
 - (void) dealloc {
-    glDeleteProgram(_angularMap2CubemapProgram);
-    glDeleteProgram(_vertCrossProgram);
+    glDeleteProgram(_glslProgram);
     glDeleteVertexArrays(1, &_cubeVAO);
     glDeleteBuffers(1, &_cubeVBO);
-    glDeleteVertexArrays(1, &_triangleVAO);
+    glDeleteVertexArrays(1, &_quadVAO);
     glDeleteTextures(1, &_cubemapTextureID);
     glDeleteTextures(1, &_lightProbeTextureID);
 }
 
-- (void)resize:(CGSize)size
-{
+- (void) resize:(CGSize)size {
+
     // Handle the resize of the draw rectangle. In particular, update the perspective projection matrix
     // with a new aspect ratio because the view orientation, layout, or size has changed.
     _viewSize = size;
@@ -129,6 +119,10 @@
  */
 - (GLuint) textureWithContentsOfFile:(NSString *)name
                           resolution:(CGSize *)size {
+    GLint maxTextureSize = 0;
+    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTextureSize);
+    //printf("Maximum texture size supported by this OpenGL implementation: %d\n", maxTextureSize);
+
     GLuint textureID = 0;
 
     NSBundle *mainBundle = [NSBundle mainBundle];
@@ -278,25 +272,49 @@
     }
 }
 
-// Returns the cubemap's texture ID if successful.
+// Returns the cubemap's texture ID/name if successful.
 - (GLuint) createCubemapTexture:(GLuint)textureID
                        faceSize:(GLsizei)faceSize {
+
+    // Must bind or buildProgramWithVertexSourceURL:withFragmentSourceURLwill crash on validation.
+    glBindVertexArray(_cubeVAO);
+    
+    NSBundle *mainBundle = [NSBundle mainBundle];
+    NSURL *vertexSourceURL = [mainBundle URLForResource:@"CubemapVertexShader"
+                                          withExtension:@"glsl"];
+    NSURL *fragmentSourceURL = [mainBundle URLForResource:@"CubemapFragmentShader"
+                                            withExtension:@"glsl"];
+    GLuint angularMap2CubemapProgram = [OpenGLRenderer buildProgramWithVertexSourceURL:vertexSourceURL
+                                                                 withFragmentSourceURL:fragmentSourceURL];
+    GLint angularMapLoc = glGetUniformLocation(angularMap2CubemapProgram, "angularMapImage");
+    //printf("%d\n", angularMapLoc);
 
     GLuint cubeMapID;
     glGenTextures(1, &cubeMapID);
     glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapID);
 
-    stbi_set_flip_vertically_on_load(false);
     for (int i=0; i<6; i++) {
+#if TARGET_MACOS
         glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
                      0,
-                     GL_RGB16F,             // internal format
+                     GL_RGBA32F,            // internal format
                      faceSize, faceSize,    // width, height
                      0,
-                     GL_RGB,                // format
+                     GL_RGBA,               // format
                      GL_FLOAT,              // type
                      nil);                  // allocate space for the pixels.
+#else
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+                     0,
+                     GL_RGBA16F,            // internal format
+                     faceSize, faceSize,    // width, height
+                     0,
+                     GL_RGBA,               // format
+                     GL_FLOAT,              // type
+                     nil);                  // allocate space for the pixels.
+#endif
     }
+    GetGLError();
 
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -319,76 +337,62 @@
     if (framebufferStatus != GL_FRAMEBUFFER_COMPLETE) {
         printf("FrameBuffer is incomplete\n");
         GetGLError();
+        glDeleteFramebuffers(1, &captureFBO);
+        glDeleteRenderbuffers(1, &captureRBO);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
         return 0;
     }
 
     // set up projection and view matrices for capturing data onto the 6 cubemap face directions
+    // The initial position of the virtual camera at the centre of a 2x2x2 cube.
+    // Its forward direction is pointing at the +Z face and its up vector vertically down.
+    // Its up vector is pointing in the -Y direction because the orientation of the six 2D
+    //  textures of the cubemap texture must conform to the Rendermann specification.
     matrix_float4x4 captureProjectionMatrix = matrix_perspective_right_hand_gl(radians_from_degrees(90),
                                                                                1.0,
                                                                                0.1, 10.0);
     matrix_float4x4 captureViewMatrices[6];
+    // The camera is rotated +90 degrees about the y-axis.
     captureViewMatrices[0] = matrix_look_at_right_hand_gl((vector_float3){ 0,  0, 0},   // eye is at the centre of the cube.
                                                           (vector_float3){ 1,  0, 0},   // centre of +X face
                                                           (vector_float3){ 0, -1, 0});  // Up
 
+    // The camera is rotated -90 degrees about the y-axis.
     captureViewMatrices[1] = matrix_look_at_right_hand_gl((vector_float3){ 0,  0, 0},   // eye is at the centre of the cube.
-                                                          (vector_float3){-1,  0, 0},   // centre of +X face
+                                                          (vector_float3){-1,  0, 0},   // centre of -X face
                                                           (vector_float3){ 0, -1, 0});  // Up
     
+    // The camera is rotated +90 degrees about the x-axis.
     captureViewMatrices[2] = matrix_look_at_right_hand_gl((vector_float3){ 0,  0, 0},   // eye is at the centre of the cube.
-                                                          (vector_float3){ 0,  1, 0},   // centre of +X face
+                                                          (vector_float3){ 0,  1, 0},   // centre of +Y face
                                                           (vector_float3){ 0,  0, 1});  // Up
     
+    // The camera is rotated -90 degrees about the x-axis.
     captureViewMatrices[3] = matrix_look_at_right_hand_gl((vector_float3){ 0,  0,  0},  // eye is at the centre of the cube.
-                                                          (vector_float3){ 0, -1,  0},  // centre of +X face
+                                                          (vector_float3){ 0, -1,  0},  // centre of -Y face
                                                           (vector_float3){ 0,  0, -1}); // Up
     
+    // The camera is at its initial position pointing in the +z direction.
+    // The up vector of the camera is pointing in the -y direction.
     captureViewMatrices[4] = matrix_look_at_right_hand_gl((vector_float3){ 0,  0, 0},   // eye is at the centre of the cube.
-                                                          (vector_float3){ 0,  0, 1},   // centre of +X face
+                                                          (vector_float3){ 0,  0, 1},   // centre of +Z face
                                                           (vector_float3){ 0, -1, 0});  // Up
     
+    // The camera is rotated -180 (+180) degrees about the y-axis.
     captureViewMatrices[5] = matrix_look_at_right_hand_gl((vector_float3){ 0,  0,  0},  // eye is at the centre of the cube.
-                                                          (vector_float3){ 0,  0, -1},  // centre of +X face
+                                                          (vector_float3){ 0,  0, -1},  // centre of -Z face
                                                           (vector_float3){ 0, -1,  0}); // Up
 
-    glUseProgram(_angularMap2CubemapProgram);
-    GLint projectionMatrixLoc = glGetUniformLocation(_angularMap2CubemapProgram, "projectionMatrix");
-    GLint viewMatrixLoc = glGetUniformLocation(_angularMap2CubemapProgram, "viewMatrix");
-    printf("%d %d\n", projectionMatrixLoc, viewMatrixLoc);
+    glUseProgram(angularMap2CubemapProgram);
+    GLint projectionMatrixLoc = glGetUniformLocation(angularMap2CubemapProgram, "projectionMatrix");
+    GLint viewMatrixLoc = glGetUniformLocation(angularMap2CubemapProgram, "viewMatrix");
+    //printf("%d %d\n", projectionMatrixLoc, viewMatrixLoc);
     glUniformMatrix4fv(projectionMatrixLoc, 1, GL_FALSE, (const GLfloat*)&captureProjectionMatrix);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, textureID);
     glViewport(0, 0, faceSize, faceSize);
 
-    void *pixelsBitmap[6];
-    for (unsigned int i = 0; i < 6; ++i) {
-        // # of channels=3, each channel consists of 1 GLfloat
-        pixelsBitmap[i] = malloc(faceSize*faceSize*3*sizeof(GLfloat));
-    }
-
-    // The images of the 6 faces of the cubemap are saved
-/*
-    // We can use a Pixel Buffer Object to capture the bitmap
-    // Setup a Pixel Buffer Object here.
-    GLuint pbo;
-    glGenBuffers(1, &pbo);
-    glBindBuffer(GL_PIXEL_PACK_BUFFER, pbo);
-    GLsizei pboBufferSize = 512*512*3*4;
-    glBufferData(GL_PIXEL_PACK_BUFFER, pboBufferSize, NULL, GL_STREAM_READ);
-    glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
-
-    // The returned value for SRGB surfaces is GL_SRGB (0x8C40)
-    // For other surfaces: GL_LINEAR (0x2601) should be returned.
-    // glGetNamedFramebufferAttachmentParameteriv is not supported by macOS OpenGL
-    GLint encoding = 0;
-    glGetFramebufferAttachmentParameteriv(GL_FRAMEBUFFER,
-                                          GL_FRONT_AND_BACK,
-                                          GL_FRAMEBUFFER_ATTACHMENT_COLOR_ENCODING,
-                                          &encoding);
-    // Encoding is 0x0000!
-    printf("encoding: 0x%04x\n", encoding);
- */
     glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
     for (unsigned int i = 0; i < 6; ++i) {
         glUniformMatrix4fv(viewMatrixLoc, 1, GL_FALSE,
@@ -400,48 +404,126 @@
                                0);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         [self renderCube];
-/*
-        // Only GL_COLOR_ATTACHMENTi or GL_NONE is valid because
-        //  we are reading from a offscreen framebuffer
-        glReadBuffer(GL_COLOR_ATTACHMENT0);
- 
-        glBindBuffer(GL_PIXEL_PACK_BUFFER, pbo);
-        //glBindFramebuffer(GL_READ_FRAMEBUFFER, captureFBO); // not necessary
- 
-        // A better alternative: use glGetTexImage - ref OGL8 334
-        glReadPixels(0, 0,
-                     faceSize, faceSize,
-                     GL_RGB,
-                     GL_FLOAT,
-                     NULL);         // offset
+    } // for
 
-        void *pboPtr = glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
-        if (pboPtr) {
-            memcpy(pixelsBitmap[i], pboPtr, pboBufferSize);
-            glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
- 
-            char cFile[32];
-            sprintf(cFile, "image%02u.hdr", i);
-            stbi_write_hdr((char const *)cFile,
-                           faceSize, faceSize,
-                           3,
-                           (const float *)pixelsBitmap[i]);
-        }
-        glDeleteBuffers(pbo);
- */
-    }
-
-    for (unsigned int i = 0; i < 6; ++i) {
-        free(pixelsBitmap[i]);
-    }
     glDeleteFramebuffers(1, &captureFBO);
     glDeleteRenderbuffers(1, &captureRBO);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+    glUseProgram(0);
 
     glBindFramebuffer(GL_FRAMEBUFFER, _defaultFBOName);
-    glUseProgram(0);
     return cubeMapID;
 }
 
+/*
+ Render the vertical crossmap to an offscreen framebuffer object.
+ */
+- (GLuint) renderVertCrossmapWithTexture:(GLuint)cubemapTexture
+                                    size:(CGSize)size {
+
+    // Silence the validation code during shader compilation.
+    glBindVertexArray(_quadVAO);
+    // Load and compile the shaders
+    NSBundle *mainBundle = [NSBundle mainBundle];
+    NSURL *vertexSourceURL = [mainBundle URLForResource:@"SimpleVertexShader"
+                                          withExtension:@"glsl"];
+    NSURL *fragmentSourceURL = [mainBundle URLForResource:@"VertCrossFragmentShader"
+                                            withExtension:@"glsl"];
+    GLuint shaderProgram = [OpenGLRenderer buildProgramWithVertexSourceURL:vertexSourceURL
+                                                     withFragmentSourceURL:fragmentSourceURL];
+    glUseProgram(shaderProgram);
+    GLuint cubemapLoc = glGetUniformLocation(shaderProgram, "cubemap");
+
+    // Instantiate the crossmap texture.
+    GLuint texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+#if TARGET_MACOS
+    glTexImage2D(GL_TEXTURE_2D,
+                 0,
+                 GL_RGBA32F,                // internal format
+                 size.width, size.height,   // width, height
+                 0,
+                 GL_RGBA,                   // format
+                 GL_FLOAT,                  // type
+                 nil);                      // allocate space for the pixels.
+#else
+    glTexImage2D(GL_TEXTURE_2D,
+                 0,
+                 GL_RGB16F,                 // internal format
+                 size.width, size.height,   // width, height
+                 0,
+                 GL_RGB,                    // format
+                 GL_FLOAT,                  // type
+                 nil);                      // allocate space for the pixels.
+#endif
+
+    GetGLError();
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    GLuint captureFBO;
+    GLuint captureRBO;
+    glGenFramebuffers(1, &captureFBO);
+    glGenRenderbuffers(1, &captureRBO);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+    glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
+    glRenderbufferStorage(GL_RENDERBUFFER,
+                          GL_DEPTH_COMPONENT24,
+                          size.width, size.height);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER,
+                              GL_DEPTH_ATTACHMENT,
+                              GL_RENDERBUFFER,
+                              captureRBO);
+    GLenum framebufferStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if (framebufferStatus != GL_FRAMEBUFFER_COMPLETE) {
+        printf("FrameBuffer is incomplete\n");
+        GetGLError();
+        
+        glDeleteProgram(shaderProgram);
+        glDeleteRenderbuffers(1, &captureRBO);
+        glDeleteFramebuffers(1, &captureFBO);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glBindFramebuffer(GL_FRAMEBUFFER, _defaultFBOName);
+        return 0;
+    }
+
+    
+    glBindFramebuffer(GL_FRAMEBUFFER,               // Already bound
+                      captureFBO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER,          // target
+                           GL_COLOR_ATTACHMENT0,    // attachment
+                           GL_TEXTURE_2D,           // texture target
+                           texture,                 // texture
+                           0);                      // level
+    GetGLError();
+
+    // Capture the result of the vertical crossmap projection.
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glViewport(0, 0,
+               size.width, size.height);
+    glUseProgram(shaderProgram);        // We have executed these 2 calls in the
+    glBindVertexArray(_quadVAO);        //  code above. So they are unneccesary.
+    glActiveTexture(GL_TEXTURE0);       // Use texture unit 0 which is the cubemap texture
+    glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+    glUniform1i(cubemapLoc, 0);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+    glBindVertexArray(0);
+    glUseProgram(0);
+
+    glDeleteProgram(shaderProgram);
+    glDeleteRenderbuffers(1, &captureRBO);
+    glDeleteFramebuffers(1, &captureFBO);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, _defaultFBOName);
+    return texture;
+}
 
 - (void) updateTime {
     _currentTime += 1/60;
@@ -454,34 +536,29 @@
     glBindVertexArray(0);
 }
 
-- (void)draw {
+- (void) draw {
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  // Bind the quad vertex array object.
+    // Bind the quad vertex array object.
     glClearColor(0.5, 0.5, 0.5, 1.0);
     glViewport(0, 0,
                _viewSize.width, _viewSize.height);
-    vector_float3 eye = (vector_float3){-1,0,0};
-    vector_float3 target = (vector_float3){0,0,0};
-    vector_float3 up = (vector_float3){0,1,0};
-    matrix_float4x4 viewMatrix = matrix_look_at_right_hand_gl(eye, target, up);
-    glUseProgram(_vertCrossProgram);
 
-    glUniformMatrix4fv(_projectionMatrixLoc, 1, GL_FALSE, (const GLfloat*)&_projectionMatrix);
-    glUniform1f(_timeLoc, _currentTime);
-    glUniform2f(_mouseLoc, _mouseCoords.x, _mouseCoords.y);
-    glUniform2f(_resolutionLoc,
-                _viewSize.width, _viewSize.height);
+    glUseProgram(_glslProgram);
+
+    //glUniformMatrix4fv(_projectionMatrixLoc, 1, GL_FALSE, (const GLfloat*)&_projectionMatrix);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, _cubemapTextureID);
-    glBindVertexArray(_triangleVAO);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
-    glUseProgram(0);
+    glBindTexture(GL_TEXTURE_2D, _vertCrossmapTextureID);
+    glBindVertexArray(_quadVAO);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glBindTexture(GL_TEXTURE_2D, 0);
     glBindVertexArray(0);
+    glUseProgram(0);
 } // draw
 
 
-+ (GLuint)buildProgramWithVertexSourceURL:(NSURL*)vertexSourceURL
-                    withFragmentSourceURL:(NSURL*)fragmentSourceURL {
++ (GLuint) buildProgramWithVertexSourceURL:(NSURL*)vertexSourceURL
+                     withFragmentSourceURL:(NSURL*)fragmentSourceURL {
 
     NSError *error;
 
@@ -565,8 +642,7 @@
     glShaderSource(fragShader, 1, (const GLchar **)&(fragSourceCString), NULL);
     glCompileShader(fragShader);
     glGetShaderiv(fragShader, GL_INFO_LOG_LENGTH, &logLength);
-    if (logLength > 0)
-    {
+    if (logLength > 0) {
         GLchar *log = (GLchar*)malloc(logLength);
         glGetShaderInfoLog(fragShader, logLength, &logLength, log);
         NSLog(@"Fragment shader compile log:\n%s.\n", log);
@@ -593,8 +669,7 @@
     NSAssert(status, @"Failed to link program.");
     if (status == 0) {
         glGetProgramiv(prgName, GL_INFO_LOG_LENGTH, &logLength);
-        if (logLength > 0)
-        {
+        if (logLength > 0) {
             GLchar *log = (GLchar*)malloc(logLength);
             glGetProgramInfoLog(prgName, logLength, &logLength, log);
             NSLog(@"Program link log:\n%s.\n", log);
@@ -604,7 +679,7 @@
 
     // Added code
     // Call the 2 functions below if VAOs have been bound prior to creating the shader program
-    // iOS will not complain if VAOs have NOT been bound.
+    // iOS will not complain if no VAOs are bound.
     glValidateProgram(prgName);
     glGetProgramiv(prgName, GL_VALIDATE_STATUS, &status);
     NSAssert(status, @"Failed to validate program.");
@@ -619,15 +694,6 @@
             free(log);
         }
     }
-
-    //GLint samplerLoc = glGetUniformLocation(prgName, "baseColorMap");
-
-    //NSAssert(samplerLoc >= 0, @"No uniform location found from `baseColorMap`.");
-
-    //glUseProgram(prgName);
-
-    // Indicate that the diffuse texture will be bound to texture unit 0.
-   // glUniform1i(samplerLoc, AAPLTextureIndexBaseColor);
 
     GetGLError();
 

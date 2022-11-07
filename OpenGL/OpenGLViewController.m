@@ -10,7 +10,8 @@
 */
 #import "OpenGLViewController.h"
 #import "OpenGLRenderer.h"
-
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#import "stb_image_write.h"
 
 #ifdef TARGET_MACOS
 #define PlatformGLContext NSOpenGLContext
@@ -111,10 +112,9 @@ static CVReturn OpenGLDisplayLinkCallback(CVDisplayLinkRef displayLink,
     CGLUnlockContext(_context.CGLContextObj);
 }
 
-- (void)prepareView
-{
-    NSOpenGLPixelFormatAttribute attrs[] =
-    {
+- (void)prepareView {
+
+    NSOpenGLPixelFormatAttribute attrs[] = {
         NSOpenGLPFAColorSize, 32,
         NSOpenGLPFADoubleBuffer,
         NSOpenGLPFADepthSize, 24,
@@ -157,8 +157,7 @@ static CVReturn OpenGLDisplayLinkCallback(CVDisplayLinkRef displayLink,
                                                       pixelFormat.CGLPixelFormatObj);
 }
 
-- (void)viewDidLayout
-{
+- (void)viewDidLayout {
     CGLLockContext(_context.CGLContextObj);
 
     NSSize viewSizePoints = _view.bounds.size;
@@ -171,43 +170,203 @@ static CVReturn OpenGLDisplayLinkCallback(CVDisplayLinkRef displayLink,
 
     CGLUnlockContext(_context.CGLContextObj);
 
-    if(!CVDisplayLinkIsRunning(_displayLink))
-    {
+    if(!CVDisplayLinkIsRunning(_displayLink)) {
         CVDisplayLinkStart(_displayLink);
     }
 }
 
-- (void) viewWillDisappear
-{
+-(void) viewDidAppear {
+    [_view.window makeFirstResponder:self];
+}
+
+
+- (void) viewWillDisappear {
     CVDisplayLinkStop(_displayLink);
 }
 
-- (void)dealloc
-{
+- (void)dealloc {
     CVDisplayLinkStop(_displayLink);
 
     CVDisplayLinkRelease(_displayLink);
 }
 
-- (void) passMouseCoords: (NSPoint)point {
-    _openGLRenderer.mouseCoords = point;
-}
 
+/*
+ Inputs:
+    name - texture identifier/name
+ fileURL - URL of the image file to be written out.
 
-- (void) mouseDown:(NSEvent *)event {
-    NSPoint mousePoint = [self.view convertPoint:event.locationInWindow
-                                        fromView:nil];
-
-    _openGLRenderer.mouseCoords = mousePoint;
-}
-
-- (void) mouseDragged:(NSEvent *)event {
-    NSPoint mousePoint = [self.view convertPoint:event.locationInWindow
-                                        fromView:nil];
+ Outputs:
+   error - A custom NSError object
+   Returns YES if image file is written out successfully.
+ */
+- (BOOL) saveTexture:(GLuint)name
+               toURL:(NSURL *)fileURL
+               error:(NSError **)error {
     
-    _openGLRenderer.mouseCoords = mousePoint;
-
+    //NSLog(@"%u %@", name, fileURL);
+    if (![fileURL.absoluteString containsString:@"."]) {
+        if (error != NULL) {
+            *error = [[NSError alloc] initWithDomain:@"File write failure."
+                                                code:0xdeadbeef
+                                            userInfo:@{NSLocalizedDescriptionKey : @"No file extension provided."}];
+        }
+        return NO;
+    }
+    
+    NSArray *subStrings = [fileURL.absoluteString componentsSeparatedByString:@"."];
+    
+    if ([subStrings[1] caseInsensitiveCompare:@"hdr"] != NSOrderedSame) {
+        if (error != NULL) {
+            *error = [[NSError alloc] initWithDomain:@"File write failure."
+                                                code:0xdeadbeef
+                                            userInfo:@{NSLocalizedDescriptionKey : @"Only (.hdr) files are supported."}];
+        }
+        return NO;
+    }
+    // stbi functions don't accept URLs as parameters.
+    const char *filePath = [fileURL fileSystemRepresentation];
+    //printf("%s\n", filePath);
+    
+    // The 2 following calls will make "name" the active texture.
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, name);
+    
+    // The OpenGL function "glGetTexLevelParameteriv" is called to query the texture object.
+    // glGetTexLevelParameter returns the texture level parameters for the active texture unit.
+    GLint width, height;
+    GLenum format;
+    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width);
+    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &height);
+    printf("%d %d\n", width, height);
+    // Should return 0x8814 which is GL_RGBA32F
+    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_INTERNAL_FORMAT, (GLint*)&format);
+    printf("0x%0X\n", format);
+    
+    int bits = 0;
+    
+    GLint _cbits;
+    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_RED_SIZE, &_cbits);
+    bits += _cbits;
+    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_GREEN_SIZE, &_cbits);
+    bits += _cbits;
+    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_BLUE_SIZE, &_cbits);
+    bits += _cbits;
+    
+    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_ALPHA_SIZE, &_cbits);
+    bits += _cbits;
+    //glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_DEPTH_SIZE, &_cbits);
+    //bits += _cbits;
+    
+    printf("# of bits per pixel:%d\n", bits);   // 128 bits/pixel
+    //const size_t kBitsPerByte = 8;
+    // Note: each pixel of the rendered target is 4x4 = 16 bytes
+    //  because OpenGL will be returning each pixel as a GLfloat.
+    // Since we are writing the image out as an .hdr file, we
+    //  set kSrcChannelCount to 3 (not 4)
+    const size_t kSrcChannelCount = 3;
+    const size_t bytesPerRow = width*kSrcChannelCount*sizeof(GLfloat);
+    size_t dataSize = bytesPerRow*height;
+    printf("Total Size:%lu\n", dataSize);
+    void *srcData = malloc(dataSize);
+    
+    // Create and allocate space for a new buffer object
+    GLuint  pbo;
+    glGenBuffers(1, &pbo);
+    // Bind the newly-created buffer object to initialise it.
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, pbo);
+    // NULL means allocate GPU memory to the PBO.
+    // GL_STREAM_READ is a hint indicating the PBO will stream a texture download
+    glBufferData(GL_PIXEL_PACK_BUFFER,
+                 dataSize,
+                 NULL,
+                 GL_STREAM_READ);
+    
+    // The parameters "format" and "type" are the pixel format
+    //  and type of the desired data
+    // Transfer texture into PBO
+    glGetTexImage(GL_TEXTURE_2D,    // target
+                  0,                // level of detail
+                  GL_RGB,           // format
+                  GL_FLOAT,         // type
+                  NULL);
+    
+    // We are going to read data from the PBO. The call will only return when
+    //  the GPU finishes its work with the buffer object.
+    void *mappedPtr = glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
+    // This should download the image's raw data from the GPU
+    memcpy(srcData, mappedPtr, dataSize);
+    // Release pointer to the mapping buffer
+    glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+    
+    // Unbind and delete the buffer
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+    glDeleteBuffers(1, &pbo);
+    
+    GetGLError();
+    
+    // Flip the image since it is upside down.
+    void *destData = malloc(dataSize);
+    // Start by reading the last row of the extracted image and
+    //  writing the first row of the image to be output to disk.
+    for (int srcRowNum = height - 1, destRowNum = 0; srcRowNum >= 0; srcRowNum--, destRowNum++) {
+        // Copy the entire row in one shot
+        memcpy(destData + (destRowNum * bytesPerRow),
+               srcData + (srcRowNum * bytesPerRow),
+               bytesPerRow);
+    }
+    
+    int err = stbi_write_hdr(filePath,
+                             (int)width, (int)height,
+                             3,
+                             destData);
+    free(srcData);
+    free(destData);
+    // Remove the binding associated with the target "GL_TEXTURE_2D".
+    glBindTexture(GL_TEXTURE_2D, 0);
+    if (err == 0) {
+        if (error != NULL)
+        {
+            *error = [[NSError alloc] initWithDomain:@"File write failure."
+                                                code:0xdeadbeef
+                                            userInfo:@{NSLocalizedDescriptionKey : @"Unable to write hdr file."}];
+        }
+        return NO;
+    }
+    return YES;
 }
+
+// Override inherited method
+- (void) keyDown:(NSEvent *)event {
+    if( [[event characters] length] ) {
+        unichar nKey = [[event characters] characterAtIndex:0];
+        if (nKey == 115) {
+            GLuint textureID = _openGLRenderer.vertCrossmapTextureID;
+            if (textureID != 0) {
+                NSSavePanel *sp = [NSSavePanel savePanel];
+                sp.canCreateDirectories = YES;
+                sp.nameFieldStringValue = @"image";
+                NSModalResponse buttonID = [sp runModal];
+                if (buttonID == NSModalResponseOK) {
+                    NSString* fileName = sp.nameFieldStringValue;
+                    if (![fileName containsString:@"."]) {
+                        fileName = [fileName stringByAppendingPathExtension:@"hdr"];
+                    }
+                    NSURL* folderURL = sp.directoryURL;
+                    NSURL* fileURL = [folderURL URLByAppendingPathComponent:fileName];
+                    NSError *err = nil;
+                    [self saveTexture:textureID
+                                toURL:fileURL
+                                error:&err];
+                }
+            }
+        }
+        else {
+            [super keyDown:event];
+        }
+    }
+}
+
 #else
 
 // ===== iOS specific code. =====
