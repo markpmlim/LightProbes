@@ -115,7 +115,8 @@ OpenGL's texture coordinates in NDC space are always in the range [0.0, 1.0] for
 The rendered texture can be saved as an HDR image by pressing "s'.
 
 
-B
+B)
+
 The code below is downloaded using the link: https://www.pauldebevec.com/RNL/Source/angmap.cal
 
 {
