@@ -352,22 +352,22 @@ typedef NS_OPTIONS(NSUInteger, ImageSize) {
                                                                                1.0,
                                                                                0.1, 10.0);
     matrix_float4x4 captureViewMatrices[6];
-    // The camera is rotated +90 degrees about the y-axis.
+    // The camera is rotated -90 degrees about the y-axis.
     captureViewMatrices[0] = matrix_look_at_right_hand_gl((vector_float3){ 0,  0, 0},   // eye is at the centre of the cube.
                                                           (vector_float3){ 1,  0, 0},   // centre of +X face
                                                           (vector_float3){ 0, -1, 0});  // Up
 
-    // The camera is rotated -90 degrees about the y-axis.
+    // The camera is rotated +90 degrees about the y-axis.
     captureViewMatrices[1] = matrix_look_at_right_hand_gl((vector_float3){ 0,  0, 0},   // eye is at the centre of the cube.
                                                           (vector_float3){-1,  0, 0},   // centre of -X face
                                                           (vector_float3){ 0, -1, 0});  // Up
     
-    // The camera is rotated +90 degrees about the x-axis.
+    // The camera is rotated -90 degrees about the x-axis.
     captureViewMatrices[2] = matrix_look_at_right_hand_gl((vector_float3){ 0,  0, 0},   // eye is at the centre of the cube.
                                                           (vector_float3){ 0,  1, 0},   // centre of +Y face
                                                           (vector_float3){ 0,  0, 1});  // Up
     
-    // The camera is rotated -90 degrees about the x-axis.
+    // The camera is rotated +90 degrees about the x-axis.
     captureViewMatrices[3] = matrix_look_at_right_hand_gl((vector_float3){ 0,  0,  0},  // eye is at the centre of the cube.
                                                           (vector_float3){ 0, -1,  0},  // centre of -Y face
                                                           (vector_float3){ 0,  0, -1}); // Up
